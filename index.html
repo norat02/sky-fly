@@ -31,6 +31,16 @@ input{-webkit-user-select:text;user-select:text}
 #netDot{position:fixed;top:24px;left:20px;z-index:20;display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink2);pointer-events:none}
 #netDot i{width:9px;height:9px;border-radius:50%;background:#9a917c;display:block}
 #netDot.on i{background:#3f7d4e}
+#authBar{position:fixed;top:46px;left:20px;z-index:20;display:flex;align-items:center;gap:7px;max-width:calc(100vw - 40px);font-size:11px;color:var(--ink2)}
+#authState{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.authBtn{font-family:inherit;background:var(--paper2);border:1.5px solid var(--ink);color:var(--ink);padding:5px 9px;font-size:11px;letter-spacing:.08em;cursor:pointer;box-shadow:2px 2px 0 rgba(38,34,28,.12)}
+.authBtn:hover{background:var(--ink);color:var(--paper2)}
+.authBtn.hidden{display:none}
+#authOverlay{z-index:30;background:rgba(240,231,211,.84)}
+.authPanel{max-width:min(94vw,470px);width:100%;padding:24px 20px 18px}
+#authMount{position:relative;z-index:1;margin:0 auto;min-height:170px}
+#authMount:empty{min-height:0}
+#authClose{position:relative;z-index:2}
 #evBanner{position:fixed;top:106px;left:50%;transform:translate(-50%,-10px);display:flex;align-items:center;gap:13px;background:var(--paper2);border:2px solid var(--ink);box-shadow:4px 4px 0 rgba(38,34,28,.15);padding:8px 18px 8px 12px;z-index:6;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;min-width:250px}
 #evBanner.show{opacity:1;transform:translate(-50%,0)}
 #evBanner .kanji{font-family:'Shippori Mincho',serif;font-size:31px;color:var(--red);line-height:1}
@@ -122,6 +132,7 @@ kbd{font-style:normal;border:1px solid var(--ink2);padding:1px 6px;font-size:11p
 <body>
 <canvas id="game"></canvas>
 <div id="netDot"><i></i><span id="netTxt">đang kết nối…</span></div>
+<div id="authBar"><span id="authState">đang kiểm tra tài khoản…</span><button class="authBtn" id="authBtn">đăng nhập online</button><button class="authBtn hidden" id="authLogout">đăng xuất</button></div>
 <div id="hud" class="hidden"><div id="score">0</div><div id="bestHud">kỷ lục · —</div></div>
 <div id="runTag" class="hidden"><span id="runNo">ván 01</span><span id="runKj">霧朝</span><span id="runVn">sương sớm</span></div>
 <div id="evBanner"><span class="kanji" id="evKanji">風</span><div><b id="evName"></b><i id="evDesc"></i><div id="evBar"><i id="evBarI"></i></div></div></div>
@@ -148,6 +159,47 @@ kbd{font-style:normal;border:1px solid var(--ink2);padding:1px 6px;font-size:11p
 <div class="panel"><div class="kana">順位表</div><h2>BẢNG THIÊN HẠ</h2><div class="rule"><i></i><b></b><i></i></div><div class="lbWrap" id="fullLb"></div><div class="lbStatus" id="fullStatus"></div><div style="margin-top:12px"><button class="btn ghost" id="lbClose">đóng</button></div></div>
 </div>
 <button id="muteBtn" aria-label="bật tắt âm thanh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path class="w" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="w" d="M18.5 5.5a9.5 9.5 0 0 1 0 13"/><path class="x" d="M16 9l6 6M22 9l-6 6"/></svg></button>
+<div class="screen hidden" id="authOverlay"><div class="panel authPanel"><div class="kana">オンライン</div><h2 id="authHeading">ĐĂNG NHẬP</h2><div class="rule"><i></i><b></b><i></i></div><div id="authMount"></div><button class="btn ghost" id="authClose">đóng</button></div></div>
+<script src="/auth-config.js"></script>
+<script>
+(function(){
+  var auth={clerk:null,user:null,ready:false};
+  var stateEl=document.getElementById('authState'),authBtn=document.getElementById('authBtn'),logoutBtn=document.getElementById('authLogout');
+  var overlay=document.getElementById('authOverlay'),mount=document.getElementById('authMount'),heading=document.getElementById('authHeading');
+  function nameOf(user){return user&&(user.firstName||user.username||(user.primaryEmailAddress&&user.primaryEmailAddress.emailAddress))||'tài khoản';}
+  function render(){
+    auth.user=auth.user||(auth.clerk&&auth.clerk.user)||null;
+    var signed=!!auth.user;
+    stateEl.textContent=signed?'online · '+nameOf(auth.user):'chơi offline';
+    authBtn.textContent=signed?'tài khoản':'đăng nhập online';
+    logoutBtn.classList.toggle('hidden',!signed);
+  }
+  function loadUi(domain){
+    return new Promise(function(resolve,reject){
+      var s=document.createElement('script');s.src='https://'+domain+'/npm/@clerk/ui@1/dist/ui.browser.js';s.async=true;s.crossOrigin='anonymous';s.onload=resolve;s.onerror=function(){reject(new Error('Không tải được giao diện đăng nhập'));};document.head.appendChild(s);
+    });
+  }
+  auth.init=function(){
+    var key=window.CHIMSE_CLERK_KEY;
+    if(!key){auth.ready=true;render();return Promise.resolve();}
+    var parts=key.split('_'),domain='';
+    try{domain=atob(parts[2]).slice(0,-1);}catch(e){}
+    if(!domain)return Promise.reject(new Error('Clerk key không hợp lệ'));
+    return loadUi(domain).then(function(){return new window.Clerk(key);}).then(function(clerk){auth.clerk=clerk;return clerk.load({ui:{ClerkUI:window.__internal_ClerkUICtor}});}).then(function(){auth.ready=true;auth.user=auth.clerk.user||null;render();if(auth.clerk.addListener)auth.clerk.addListener(function(data){auth.user=data.user||null;render();if(auth.user){overlay.classList.add('hidden');}});}).catch(function(err){auth.ready=true;stateEl.textContent='đăng nhập chưa sẵn sàng';console.error(err);});
+  };
+  auth.isSignedIn=function(){return !!(auth.user||(auth.clerk&&auth.clerk.user));};
+  auth.open=function(){
+    if(!auth.clerk){stateEl.textContent='đang tải đăng nhập…';return;}
+    overlay.classList.remove('hidden');heading.textContent='ĐĂNG NHẬP';
+    try{auth.clerk.mountSignIn(mount);}catch(e){console.error(e);}
+  };
+  authBtn.addEventListener('click',function(){auth.open();});
+  logoutBtn.addEventListener('click',function(){if(auth.clerk)auth.clerk.signOut().then(function(){auth.user=null;render();});});
+  document.getElementById('authClose').addEventListener('click',function(){overlay.classList.add('hidden');});
+  window.CHIMSE_AUTH=auth;
+  auth.init();
+})();
+</script>
 <script>
 window.addEventListener('error',function(e){
   var d=document.getElementById('errBox');
@@ -302,24 +354,20 @@ var AU={
   setMute:function(m){this.muted=m;store.set('chimse.mute',m?'1':'0');if(this.g)this.g.gain.value=m?0:0.5;}
 };
 
-/* ═══ NEON ═══ */
+/* ═══ ONLINE SCORE API ═══ */
 function withTimeout(p,ms){return new Promise(function(res,rej){var to=setTimeout(function(){rej(new Error('timeout'));},ms);p.then(function(v){clearTimeout(to);res(v);},function(e){clearTimeout(to);rej(e);});});}
 function setNet(on,txt){netDot.classList.toggle('on',!!on);netTxt.textContent=txt;}
+function apiJson(url,opts){opts=opts||{};opts.credentials='same-origin';opts.headers=Object.assign({'Content-Type':'application/json'},opts.headers||{});return withTimeout(fetch(url,opts),9000).then(function(res){return res.json().catch(function(){return {};}).then(function(body){if(!res.ok)throw new Error(body.error||'api');return body;});});}
 var DB={
-  online:false,loading:!!NEON_URL,sql:null,cache:null,
+  online:false,loading:true,cache:null,
   init:function(){
-    if(!NEON_URL){DB.loading=false;setNet(false,'chơi cục bộ');return;}
     setNet(false,'đang kết nối…');
-    var imp=function(url){return withTimeout(import(url),10000).then(function(mod){if(!mod||typeof mod.neon!=='function')throw new Error('driver');return mod.neon(NEON_URL);});};
-    imp('https://esm.sh/@neondatabase/serverless@0.10?exports=neon')
-    .catch(function(){return imp('https://esm.sh/@neondatabase/serverless');})
-    .then(function(fn){DB.sql=fn;return withTimeout(fn`SELECT count(*) AS n FROM scores`,10000);})
-    .then(function(){DB.online=true;setNet(true,'trực tuyến');})
-    .catch(function(e){DB.online=false;var m=(e&&e.message)||'';setNet(false,m.indexOf('scores')>=0&&m.indexOf('exist')>=0?'bảng chưa tạo':'ngoại tuyến');})
-    .then(function(){DB.loading=false;if(DB.online)DB.refreshTop();if(!lbSc.classList.contains('hidden'))refreshFull();});
+    apiJson('/api/health',{method:'GET'}).then(function(){DB.online=true;setNet(true,'trực tuyến');return DB.refreshTop();})
+    .catch(function(){DB.online=false;setNet(false,'chơi cục bộ');})
+    .then(function(){DB.loading=false;if(!lbSc.classList.contains('hidden'))refreshFull();});
   },
-  refreshTop:function(){if(!DB.online||!DB.sql)return Promise.resolve(null);return DB.sql`SELECT player_name AS name, score FROM scores ORDER BY score DESC, created_at ASC LIMIT 10`.then(function(rows){DB.cache=rows;return rows;}).catch(function(){return null;});},
-  submit:function(name,sc){return DB.sql`INSERT INTO scores (player_name, score) VALUES (${name}, ${sc})`.then(function(){return DB.refreshTop();});}
+  refreshTop:function(){if(!DB.online)return Promise.resolve(null);return apiJson('/api/scores',{method:'GET'}).then(function(body){DB.cache=body.scores||[];return DB.cache;}).catch(function(){return null;});},
+  submit:function(name,sc){if(!DB.online)return Promise.reject(new Error('offline'));return apiJson('/api/scores',{method:'POST',body:JSON.stringify({name:name,score:sc})}).then(function(body){DB.cache=body.scores||DB.cache;return DB.cache;});}
 };
 
 var RK=['一','二','三','四','五','六','七','八','九','十'];
