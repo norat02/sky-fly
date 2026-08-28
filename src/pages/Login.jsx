@@ -3,6 +3,8 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { LogIn, User, Lock, Loader2, ShieldCheck, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import AuthLayout from "@/components/AuthLayout";
+import OAuthButtons from "@/components/OAuthButtons";
+import { safeReturnTo } from "@/lib/authReturnTo";
 
 export default function Login() {
   const [searchParams] = useSearchParams();
@@ -14,7 +16,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const returnTo = searchParams.get("returnTo") || searchParams.get("from_url") || "/";
+  const returnTo = safeReturnTo();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,7 +66,9 @@ export default function Login() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <OAuthButtons returnTo={returnTo} onError={setError} disabled={loading} />
+
+      <form onSubmit={handleSubmit} className="mt-5 space-y-4">
         {/* Username field */}
         <div className="space-y-1.5">
           <label htmlFor="username" className="block text-sm font-heading font-bold text-foreground">

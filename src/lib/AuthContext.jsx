@@ -122,6 +122,17 @@ export const AuthProvider = ({ children }) => {
     return res;
   };
 
+  const loginWithProvider = async (provider, returnTo = '/') => {
+    const res = await db.auth.loginWithProvider(provider, returnTo);
+    if (res?.user) {
+      setUser(res.user);
+      setIsAuthenticated(true);
+      const p = await ensureProfile().catch(() => null);
+      setProfile(p);
+    }
+    return res;
+  };
+
   const loginAsGuest = async (customName) => {
     const res = await db.auth.loginAsGuest(customName);
     if (res?.user) {
@@ -185,6 +196,7 @@ export const AuthProvider = ({ children }) => {
         appPublicSettings,
         authChecked,
         login,
+        loginWithProvider,
         loginAsGuest,
         register,
         verifyOtp,

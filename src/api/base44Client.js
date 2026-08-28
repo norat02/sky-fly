@@ -811,42 +811,53 @@ export const auth = {
   },
 
   async loginWithProvider(provider = 'google', returnTo = '/') {
+    const providerConfig = {
+      google: { label: 'Google', username: 'google_user' },
+      apple: { label: 'Apple', username: 'apple_user' },
+      azure: { label: 'Microsoft', username: 'microsoft_user' },
+    };
+    const selected = providerConfig[provider];
+    if (!selected) throw new Error('This sign-in provider is not supported.');
+
+    const safeReturnTo = typeof returnTo === 'string'
+      && returnTo.startsWith('/')
+      && !returnTo.startsWith('//')
+      && !returnTo.includes('\\\\')
+      ? returnTo
+      : '/';
     const supabase = getSupabase();
+
     if (supabase) {
-      try {
-        const redirectUrl = typeof window !== 'undefined'
-          ? `${window.location.origin}${returnTo || '/'}`
-          : undefined;
-
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider,
-          options: {
-            redirectTo: redirectUrl,
-          },
-        });
-
-        if (!error) return { success: true };
-      } catch {
-        // fallthrough
-      }
+      const redirectUrl = typeof window !== 'undefined'
+        ? `${window.location.origin}${safeReturnTo}`
+        : undefined;
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: redirectUrl,
+          ...(provider === 'azure' ? { scopes: 'email' } : {}),
+        },
+      });
+      if (error) throw new Error(error.message || `Unable to continue with ${selected.label}.`);
+      return { success: true, provider, url: data?.url };
     }
 
+    // Local preview fallback when Supabase credentials are not configured.
     const user = {
-      id: 'usr_g_' + Math.random().toString(36).substring(2, 9),
-      email: 'google_user@whisper.chat',
+      id: `usr_${provider}_` + Math.random().toString(36).substring(2, 9),
+      email: `${selected.username}@whisper.chat`,
       role: 'user',
       user_metadata: {
-        username: 'google_user',
-        display_name: 'Google User',
+        username: selected.username,
+        display_name: `${selected.label} User`,
+        provider,
       },
       created_at: new Date().toISOString(),
     };
-    const token = 'tok_g_' + Date.now();
+    const token = `tok_${provider}_` + Date.now();
     setAuthUser(user, token);
-    if (typeof window !== 'undefined') {
-      window.location.href = returnTo || '/';
-    }
-    return { access_token: token, user };
+    if (typeof window !== 'undefined') window.location.assign(safeReturnTo);
+    return { access_token: token, user, provider };
   },
 
   setToken(token) {

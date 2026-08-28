@@ -3,6 +3,8 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { UserPlus, Lock, User, Sparkles, Loader2, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import AuthLayout from "@/components/AuthLayout";
+import OAuthButtons from "@/components/OAuthButtons";
+import { safeReturnTo } from "@/lib/authReturnTo";
 import { generateUsername } from "@/lib/chat-utils";
 
 export default function Register() {
@@ -17,7 +19,7 @@ export default function Register() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const returnTo = searchParams.get("returnTo") || searchParams.get("from_url") || "/";
+  const returnTo = safeReturnTo();
 
   const handleRandomizeHandle = () => {
     const handle = generateUsername();
@@ -97,7 +99,9 @@ export default function Register() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-3.5">
+      <OAuthButtons returnTo={returnTo} onError={setError} disabled={loading} />
+
+      <form onSubmit={handleSubmit} className="mt-5 space-y-3.5">
         {/* Username field */}
         <div className="space-y-1">
           <div className="flex items-center justify-between">

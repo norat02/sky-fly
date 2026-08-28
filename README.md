@@ -86,9 +86,13 @@ Whisper is an Instagram-style social media and real-time messaging application w
 3. Under **Redirect URLs**, add:
    - `http://localhost:3000/**`
    - `https://your-whisper-app.vercel.app/**`
-4. (Optional Google Login): Go to **Authentication** -> **Providers** -> **Google**, enable Google, and paste your Google Client ID & Client Secret from Google Cloud Console.
+4. Configure the social providers you want under **Authentication** -> **Providers**:
+   - **Google**: enable Google and add the OAuth Client ID and Client Secret from Google Cloud Console.
+   - **Apple**: enable Apple and add the Services ID, Team ID, Key ID, and private key from Apple Developer.
+   - **Azure (Microsoft)**: enable Azure and add the Microsoft Entra Client ID and Client Secret. Whisper uses Supabase provider key `azure` for the Microsoft button.
+5. In each provider console, register Supabase's callback URL shown in the provider settings. Keep Whisper's app redirect URL in Supabase **URL Configuration** so the session returns to the app after authentication.
 
-### 4. Copy API Keys
+### 5. Copy API Keys
 1. Go to **Project Settings** -> **API**.
 2. Copy the **Project URL** (`https://xyzcompany.supabase.co`).
 3. Copy the **anon / public** key (`eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`).
