@@ -143,6 +143,38 @@ Whisper is an Instagram-style social media and real-time messaging application w
    ```
    Open `http://localhost:3000` in your browser.
 
+### OAuth E2E tests on staging
+
+The repository includes Playwright tests in [`tests/e2e/oauth.spec.js`](tests/e2e/oauth.spec.js). The default suite checks that Login and Register render all three provider buttons and simulates callback errors for canceled consent and duplicate email. Real provider redirects and authenticated flows are opt-in because they require external accounts, consent screens, MFA handling, and provider secrets.
+
+Install the Playwright browser once, then run the safe staging smoke suite:
+
+```bash
+pnpm exec playwright install chromium
+E2E_BASE_URL=https://staging.your-domain.com pnpm test:e2e
+```
+
+To exercise provider redirects, use:
+
+```bash
+E2E_BASE_URL=https://staging.your-domain.com \\
+E2E_TEST_OAUTH_REDIRECTS=1 \\
+pnpm test:e2e
+```
+
+For full authenticated flows, create dedicated non-production accounts and inject their credentials only through a secure CI secret store or an untracked local `.env.local` file:
+
+```bash
+E2E_BASE_URL=https://staging.your-domain.com \\
+E2E_RUN_PROVIDER_AUTH=1 \\
+E2E_GOOGLE_EMAIL=... E2E_GOOGLE_PASSWORD=... \\
+E2E_APPLE_EMAIL=... E2E_APPLE_PASSWORD=... \\
+E2E_MICROSOFT_EMAIL=... E2E_MICROSOFT_PASSWORD=... \\
+pnpm test:e2e
+```
+
+The full provider tests may require manual MFA or consent changes and should never use production accounts. Review the generated HTML report with `pnpm test:e2e:report` after a run.
+
 ---
 
 ## 🚢 Deploying to Vercel
@@ -212,5 +244,8 @@ The repository includes a ready-to-use `vercel.json` configured for Vite SPA rou
 | `pnpm preview` | Serves the production frontend locally for verification |
 | `pnpm lint` | Runs ESLint on project files |
 | `pnpm typecheck` | Runs the configured TypeScript check |
+| `pnpm test:e2e` | Runs Playwright staging E2E tests |
+| `pnpm test:e2e:ui` | Opens Playwright in UI mode |
+| `pnpm test:e2e:report` | Opens the last Playwright HTML report |
 
 For the complete environment variable list, required/optional status, OAuth notes, and secret-handling rules, see [`.env.example`](.env.example).

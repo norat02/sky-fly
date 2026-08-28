@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Apple, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import GoogleIcon from '@/components/GoogleIcon';
+import { getOAuthErrorMessage } from '@/lib/oauthErrors';
 
 const PROVIDERS = [
   {
@@ -40,7 +41,7 @@ export default function OAuthButtons({ returnTo = '/', onError, disabled = false
         window.location.assign(returnTo || '/');
       }
     } catch (error) {
-      onError?.(error?.message || `Unable to continue with ${provider.label}. Please try again.`);
+      onError?.(getOAuthErrorMessage(error));
       setLoadingProvider('');
     }
   };

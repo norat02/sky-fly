@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { LogIn, User, Lock, Loader2, ShieldCheck, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import AuthLayout from "@/components/AuthLayout";
 import OAuthButtons from "@/components/OAuthButtons";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import { getOAuthErrorFromLocation } from "@/lib/oauthErrors";
 
 export default function Login() {
   const [searchParams] = useSearchParams();
@@ -17,6 +18,14 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const returnTo = safeReturnTo();
+
+  useEffect(() => {
+    const callbackError = getOAuthErrorFromLocation();
+    if (callbackError) {
+      setError(callbackError);
+      window.history.replaceState({}, document.title, window.location.pathname + window.location.search.replace(/([?&])(?:error|error_code|error_description)=[^&]*/g, '').replace(/[?&]$/, ''));
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

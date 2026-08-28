@@ -37,3 +37,7 @@ Thumbs.db
 .vite/
 base44/.app.jsonc
 *.local
+
+# Playwright test artifacts
+playwright-report/
+test-results/
