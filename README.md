@@ -23,7 +23,8 @@ Whisper is an Instagram-style social media and real-time messaging application w
 │    Supabase Auth    │  │ Supabase PostgreSQL │  │  Supabase Storage   │
 │ (Sign up, Log in,   │  │  (Profiles, Posts,  │  │  (Avatars, Posts,   │
 │  Password Recovery, │  │   Likes, Comments,  │  │   Stories, Media,   │
-│  OAuth / Google)    │  │  Stories, Messages) │  │   Voice recordings) │
+│  Google / Apple /   │  │  Stories, Messages) │  │   Voice recordings) │
+│  Microsoft OAuth)   │  │                     │  │                     │
 └─────────────────────┘  └─────────────────────┘  └─────────────────────┘
 ```
 
@@ -33,7 +34,7 @@ Whisper is an Instagram-style social media and real-time messaging application w
 
 - **Supabase Authentication**:
   - Email & Password sign-up and login with automatic user profile provisioning.
-  - One-click Google OAuth login.
+  - One-click Google, Apple, and Microsoft OAuth login and registration.
   - Password reset flow with secure email recovery links.
   - Session persistence across browser reloads.
   - Protected routes and authenticated redirects.
@@ -48,8 +49,8 @@ Whisper is an Instagram-style social media and real-time messaging application w
   - Storage bucket integration for `avatars`, `posts`, `stories`, and `chat_media`.
 - **Hand-Drawn Sketchbook UI / UX**:
   - Signature inky pen & paper aesthetic (`Kalam` & `Patrick Hand` typography, custom doodle borders, warm paper light mode, and dark inky mode).
-- **Fast Live Translation**:
-  - Ultra-fast inline translation across English, Vietnamese, Hindi, Hinglish powered by OpenRouter / Gemini.
+  - **Fast Live Translation**:
+  - Per-user inline translation across 38 supported languages, with local cache, SLM, OpenRouter, Gemini, DeepSeek, and OpenAI fallbacks.
 
 ---
 
@@ -92,7 +93,7 @@ Whisper is an Instagram-style social media and real-time messaging application w
    - **Azure (Microsoft)**: enable Azure and add the Microsoft Entra Client ID and Client Secret. Whisper uses Supabase provider key `azure` for the Microsoft button.
 5. In each provider console, register Supabase's callback URL shown in the provider settings. Keep Whisper's app redirect URL in Supabase **URL Configuration** so the session returns to the app after authentication.
 
-### 5. Copy API Keys
+### 4. Copy API Keys
 1. Go to **Project Settings** -> **API**.
 2. Copy the **Project URL** (`https://xyzcompany.supabase.co`).
 3. Copy the **anon / public** key (`eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`).
@@ -103,30 +104,25 @@ Whisper is an Instagram-style social media and real-time messaging application w
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/your-username/whisper-chat.git
+   git clone https://github.com/norat02/whisper-chat.git
    cd whisper-chat
    ```
 
 2. **Install dependencies**:
    ```bash
-   npm install
+   pnpm install
    ```
 
 3. **Configure Environment Variables**:
-   Create a `.env` or `.env.local` file from `.env.example`:
+   Create a local file from `.env.example`:
    ```bash
-   cp .env.example .env
+   cp .env.example .env.local
    ```
-   Fill in your Supabase project credentials:
-   ```env
-   VITE_SUPABASE_URL=https://your-project-id.supabase.co
-   VITE_SUPABASE_ANON_KEY=your-supabase-anon-public-key
-   VITE_OPENROUTER_API_KEY=optional-openrouter-key
-   ```
+   At minimum, set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. For server-side translation, set `GEMINI_API_KEY`. The optional `VITE_*` translation keys are browser-visible and should not contain high-privilege secrets. See `.env.example` for the complete list and provider-specific notes.
 
 4. **Start the development server**:
    ```bash
-   npm run dev
+   pnpm dev
    ```
    Open `http://localhost:3000` in your browser.
 
@@ -151,10 +147,15 @@ The repository includes a ready-to-use `vercel.json` configured for Vite SPA rou
    Add the following variables in the Vercel project deployment settings:
    - `VITE_SUPABASE_URL`: Your Supabase Project URL (`https://xyz.supabase.co`)
    - `VITE_SUPABASE_ANON_KEY`: Your Supabase Anon Public Key
-   - `VITE_OPENROUTER_API_KEY`: *(Optional)* Your OpenRouter API key
+   - `GEMINI_API_KEY`: *(Recommended for server-side translation)* Gemini API key
+   - `VITE_OPENROUTER_API_KEY`: *(Optional, browser-visible)* OpenRouter fallback key
+   - `VITE_GEMINI_API_KEY`: *(Optional, browser-visible)* Gemini fallback key
+   - `VITE_DEEPSEEK_API_KEY`: *(Optional, browser-visible)* DeepSeek fallback key
+   - `VITE_OPENAI_API_KEY`: *(Optional, browser-visible)* OpenAI fallback key
+   - `VITE_BASE44_APP_ID`, `VITE_BASE44_FUNCTIONS_VERSION`, `VITE_BASE44_APP_BASE_URL`: *(Optional)* Base44 compatibility values
 
 4. **Deploy**:
-   - Click **Deploy**. Vercel will automatically run `npm run build` and launch the live site.
+   - Click **Deploy**. Vercel will automatically run `pnpm build` and launch the live site. After deployment, add the production URL to Supabase **Authentication -> URL Configuration -> Redirect URLs**, then confirm the same callback settings in Google Cloud, Apple Developer, and Microsoft Entra.
 
 ---
 
@@ -189,8 +190,8 @@ The repository includes a ready-to-use `vercel.json` configured for Vite SPA rou
 
 | Command | Description |
 | :--- | :--- |
-| `npm run dev` | Runs the local Vite development server |
-| `npm run build` | Builds the production bundle to `dist/` |
-| `npm run preview` | Serves the production build locally for verification |
-| `npm run lint` | Runs ESLint on project files |
-| `npm run typecheck` | Type-checks code |
+| `pnpm dev` | Runs the local app/server development server |
+| `pnpm build` | Builds the frontend and bundled server to `dist/` |
+| `pnpm preview` | Serves the production frontend locally for verification |
+| `pnpm lint` | Runs ESLint on project files |
+| `pnpm typecheck` | Runs the configured TypeScript check |
