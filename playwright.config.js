@@ -11,9 +11,9 @@ export default defineConfig({
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL,
-    trace: 'retain-on-failure',
+    trace: process.env.E2E_RUN_PROVIDER_AUTH ? 'off' : 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    video: 'off',
     actionTimeout: 15_000,
     navigationTimeout: 30_000,
   },

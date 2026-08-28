@@ -228,10 +228,33 @@ The repository includes a ready-to-use `vercel.json` configured for Vite SPA rou
 
 ## 🔒 Security Best Practices
 
-1. **Client-Side Keys**: Only the `anon` public key is ever used on the frontend. The `service_role` key is **never** included or exposed.
-2. **Row Level Security (RLS)**: Enforces write restrictions on the database layer so users can only modify their own profiles, posts, likes, comments, and stories.
-3. **Storage Policies**: Avatars and post media are publicly viewable, but only authenticated users can upload new files.
-4. **Environment Isolation**: Secret keys are maintained in `.env` (ignored by `.gitignore`) and injected at deployment via Vercel's secure environment variable manager.
+1. **Client-Side Keys**: Only the Supabase `anon` public key is used by the frontend. The `service_role` key, OAuth client secrets and AI provider secrets must never be bundled or exposed.
+2. **Account Linking**: A signed-in user can link Google, Apple or Microsoft from **Settings → Linked sign-in methods**. The app verifies the current Supabase user before calling `linkIdentity`; linking never merges two separate Whisper accounts, and a provider identity already attached to another account is rejected without changing either account.
+3. **Server API Authentication**: `/api/translate` and `/api/translate/batch` require a valid Supabase bearer token verified server-side through `auth.getUser()`. Direct unauthenticated calls receive HTTP 401, and requests are rate-limited with credential-free audit events.
+4. **Security Headers**: The server sends `X-Content-Type-Options`, `X-Frame-Options`, strict referrer policy, permissions policy and HSTS in production.
+5. **Authorization Boundary**: Client-supplied role, permission, owner ID and authentication state are not trusted by the server API. Database writes must continue to be enforced by Supabase RLS policies and ownership predicates.
+6. **Error and Log Hygiene**: Auth/API errors are minimized and provider/credential values are redacted before server logging. Access tokens, refresh tokens and secrets are not returned from the custom auth adapter.
+7. **Rate Limiting and Audit**: API requests use a bounded per-IP rate limit. Missing, invalid or excessive-authentication requests create audit events without token, cookie or secret values.
+8. **Environment Isolation**: Secret keys are maintained in `.env` (ignored by `.gitignore`) and injected at deployment via Vercel or GitHub Actions secret storage.
+
+### Important session architecture note
+
+The current browser data layer still uses the Supabase JavaScript SDK for realtime and database access. Supabase's browser SDK manages its own session persistence for that client. The custom Whisper adapter no longer writes access tokens or refresh tokens to its own localStorage key, and the server-side translation APIs are protected independently. A complete **HttpOnly + Secure + SameSite cookie-only session** migration requires moving all authenticated database/realtime operations behind server routes or a server-side Supabase session bridge; it should be completed before making a strict cookie-only security claim for production.
+
+### GitHub Actions staging E2E
+
+The workflow [`.github/workflows/e2e-staging.yml`](.github/workflows/e2e-staging.yml) runs on every push to `staging` and can also be started manually. Configure the following GitHub Actions secrets:
+
+| Secret | Purpose |
+| --- | --- |
+| `STAGING_URL` | HTTPS base URL of the staging deployment. |
+| `E2E_TEST_OAUTH_REDIRECTS` | Set to `1` to exercise real provider redirects. Leave empty for UI-only smoke tests. |
+| `E2E_RUN_PROVIDER_AUTH` | Set to `1` only when dedicated non-production provider accounts are available. |
+| `E2E_GOOGLE_EMAIL` / `E2E_GOOGLE_PASSWORD` | Dedicated Google E2E account. |
+| `E2E_APPLE_EMAIL` / `E2E_APPLE_PASSWORD` | Dedicated Apple E2E account. |
+| `E2E_MICROSOFT_EMAIL` / `E2E_MICROSOFT_PASSWORD` | Dedicated Microsoft E2E account. |
+
+The workflow never prints these values. Do not use production accounts, and do not enable full provider authentication unless the staging provider consoles, MFA strategy and callback URLs are ready.
 
 ---
 

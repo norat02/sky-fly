@@ -1,0 +1,70 @@
+name: OAuth E2E on staging
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oauth-e2e-staging
+  cancel-in-progress: true
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      E2E_BASE_URL: ${{ secrets.STAGING_URL }}
+      E2E_TEST_OAUTH_REDIRECTS: ${{ secrets.E2E_TEST_OAUTH_REDIRECTS }}
+      E2E_RUN_PROVIDER_AUTH: ${{ secrets.E2E_RUN_PROVIDER_AUTH }}
+      E2E_GOOGLE_EMAIL: ${{ secrets.E2E_GOOGLE_EMAIL }}
+      E2E_GOOGLE_PASSWORD: ${{ secrets.E2E_GOOGLE_PASSWORD }}
+      E2E_APPLE_EMAIL: ${{ secrets.E2E_APPLE_EMAIL }}
+      E2E_APPLE_PASSWORD: ${{ secrets.E2E_APPLE_PASSWORD }}
+      E2E_MICROSOFT_EMAIL: ${{ secrets.E2E_MICROSOFT_EMAIL }}
+      E2E_MICROSOFT_PASSWORD: ${{ secrets.E2E_MICROSOFT_PASSWORD }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Validate staging URL
+        run: |
+          test -n "$E2E_BASE_URL" || (echo "STAGING_URL GitHub secret is required" && exit 1)
+          case "$E2E_BASE_URL" in
+            https://*) ;;
+            *) echo "STAGING_URL must use HTTPS"; exit 1 ;;
+          esac
+
+      - name: Run Playwright E2E
+        run: pnpm test:e2e --reporter=line
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_number }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14

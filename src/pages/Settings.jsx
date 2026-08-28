@@ -24,6 +24,7 @@ import {
   Timer,
 } from 'lucide-react';
 import BackgroundOrbs from '@/components/BackgroundOrbs';
+import AccountLinking from '@/components/AccountLinking';
 import { db } from '@/api/base44Client';
 import { ensureProfile, clearAllLocal, updateProfile } from '@/lib/chat-utils';
 import { LANGUAGES } from '@/lib/languages';
@@ -307,7 +308,11 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Translation AI Engine & Model Hub */}
+        <div className="my-5">
+          <AccountLinking />
+        </div>
+
+        {/* AI Engine & Model Hub */}
         <div className="glass-card mt-4 space-y-4 overflow-hidden rounded-2xl p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

@@ -7,6 +7,7 @@
 
 import { SLM_DICTIONARY } from './slmDictionary';
 import { extractPunctuationWrapper, formatPreservedText, isNonTranslatable } from './slmTokenizer';
+import { getSupabase } from '@/lib/supabase';
 
 const PROVIDER_STORAGE = 'whisper_ai_provider';
 const CACHE_STORAGE = 'whisper_slm_cache_v3';
@@ -235,6 +236,17 @@ export function getCachedTranslation(text, targetLang) {
   return null;
 }
 
+async function getServerAuthHeaders() {
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return {};
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 // --- Tier 2: Server-Side Gemini Flash SLM ---
 async function translateViaServerSLM(text, targetLang) {
   const controller = new AbortController();
@@ -243,7 +255,7 @@ async function translateViaServerSLM(text, targetLang) {
   try {
     const resp = await fetch('/api/translate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await getServerAuthHeaders()) },
       signal: controller.signal,
       body: JSON.stringify({
         text,

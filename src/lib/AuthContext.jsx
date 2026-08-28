@@ -122,6 +122,11 @@ export const AuthProvider = ({ children }) => {
     return res;
   };
 
+  const linkProvider = async (provider, returnTo = '/settings') => {
+    const res = await db.auth.linkProvider(provider, returnTo);
+    return res;
+  };
+
   const loginWithProvider = async (provider, returnTo = '/') => {
     const res = await db.auth.loginWithProvider(provider, returnTo);
     if (res?.user) {
@@ -146,7 +151,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (data) => {
     const res = await db.auth.register(data);
-    if (res?.user && (res?.session || res?.access_token)) {
+    if (res?.user) {
       setUser(res.user);
       setIsAuthenticated(true);
       const p = await ensureProfile().catch(() => null);
@@ -197,6 +202,7 @@ export const AuthProvider = ({ children }) => {
         authChecked,
         login,
         loginWithProvider,
+        linkProvider,
         loginAsGuest,
         register,
         verifyOtp,

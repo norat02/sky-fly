@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
+import { apiRateLimit, redactError, requireSupabaseUser, securityHeaders } from './server/security.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -69,6 +70,10 @@ const LANGUAGE_NAMES: Record<string, string> = {
 
 async function startServer() {
   const app = express();
+  app.disable('x-powered-by');
+  app.use(securityHeaders);
+  app.use('/api', apiRateLimit);
+  app.use(['/api/translate', '/api/translate/batch'], requireSupabaseUser);
   app.use(express.json({ limit: '2mb' }));
 
   // 1. SLM Translation Engine Status
@@ -135,7 +140,7 @@ Preserve emojis, @mentions, URLs, and punctuation. Maintain texting nuance and n
         provider: 'gemini-3.7-flash-slm',
       });
     } catch (err: any) {
-      console.error('SLM Translation error:', err?.message || err);
+      console.error('SLM Translation error:', redactError(err));
       return res.status(500).json({
         error: err?.message || 'Translation failed',
         fallbackNeeded: true,
@@ -205,7 +210,7 @@ Preserve emojis, @mentions, and URLs. Output only the numbered list.`;
         provider: 'gemini-3.7-flash-slm-batch',
       });
     } catch (err: any) {
-      console.error('SLM Batch Translation error:', err?.message || err);
+      console.error('SLM Batch Translation error:', redactError(err));
       return res.status(500).json({
         error: err?.message || 'Batch translation failed',
         fallbackNeeded: true,

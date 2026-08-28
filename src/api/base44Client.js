@@ -4,7 +4,6 @@ import { getSupabase, uploadToSupabaseStorage } from '@/lib/supabase';
 
 const DB_PREFIX = 'whisper_b44_entity_';
 const AUTH_USER_KEY = 'whisper_b44_auth_user';
-const AUTH_TOKEN_KEY = 'whisper_b44_auth_token';
 const OTP_STORE_KEY = 'whisper_b44_pending_otps';
 
 // Map entity name to Supabase table name
@@ -477,7 +476,7 @@ export const entities = new Proxy(
 
 // Auth implementation backed by Supabase Auth with instant local caching
 function getAuthUser() {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === 'undefined' || getSupabase()) return null;
   try {
     const raw = localStorage.getItem(AUTH_USER_KEY);
     if (raw) return JSON.parse(raw);
@@ -487,15 +486,13 @@ function getAuthUser() {
   }
 }
 
-function setAuthUser(user, token = null) {
-  if (typeof window === 'undefined') return;
+function setAuthUser(user) {
+  if (typeof window === 'undefined' || getSupabase()) return;
   try {
     if (user) {
       localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
-      if (token) localStorage.setItem(AUTH_TOKEN_KEY, token);
     } else {
       localStorage.removeItem(AUTH_USER_KEY);
-      localStorage.removeItem(AUTH_TOKEN_KEY);
     }
   } catch (err) {
     console.error('Failed to set auth user:', err);
@@ -568,8 +565,8 @@ export const auth = {
             user_metadata: data.user.user_metadata,
             created_at: data.user.created_at,
           };
-          setAuthUser(formatted, data.session?.access_token);
-          return { access_token: data.session?.access_token, user: formatted };
+          setAuthUser(formatted);
+          return { user: formatted };
         }
       } catch (err) {
         console.warn('Supabase login attempt error:', err);
@@ -589,9 +586,8 @@ export const auth = {
       },
       created_at: new Date().toISOString(),
     };
-    const token = 'tok_' + Math.random().toString(36).substring(2, 10) + Date.now();
-    setAuthUser(user, token);
-    return { access_token: token, user };
+    setAuthUser(user);
+    return { user };
   },
 
   async loginAsGuest(customName = '') {
@@ -613,9 +609,8 @@ export const auth = {
       },
       created_at: new Date().toISOString(),
     };
-    const token = 'tok_guest_' + Date.now();
-    setAuthUser(user, token);
-    return { access_token: token, user };
+    setAuthUser(user);
+    return { user };
   },
 
   async register({ username, displayName, password, email }) {
@@ -651,8 +646,7 @@ export const auth = {
             user_metadata: data.user.user_metadata,
             created_at: data.user.created_at,
           };
-          const token = data.session?.access_token || 'tok_sb_' + Date.now();
-          setAuthUser(formatted, token);
+          setAuthUser(formatted);
 
           // Create / update profile in Supabase profiles table
           try {
@@ -669,7 +663,7 @@ export const auth = {
             console.warn('Profile init in Supabase:', e);
           }
 
-          return { success: true, user: formatted, session: data.session, access_token: token };
+          return { success: true, user: formatted, hasSession: Boolean(data.session) };
         }
       } catch (err) {
         console.warn('Supabase register error, using direct auth:', err);
@@ -688,8 +682,7 @@ export const auth = {
       },
       created_at: new Date().toISOString(),
     };
-    const token = 'tok_' + Math.random().toString(36).substring(2, 10) + Date.now();
-    setAuthUser(user, token);
+    setAuthUser(user);
 
     // Save profile locally
     try {
@@ -710,7 +703,6 @@ export const auth = {
     return {
       success: true,
       user,
-      access_token: token,
       message: 'Account created successfully!',
     };
   },
@@ -734,8 +726,8 @@ export const auth = {
             user_metadata: data.user.user_metadata,
             created_at: data.user.created_at,
           };
-          setAuthUser(formatted, data.session?.access_token);
-          return { access_token: data.session?.access_token, user: formatted };
+          setAuthUser(formatted);
+          return { user: formatted };
         }
       } catch {
         // fallthrough
@@ -749,9 +741,8 @@ export const auth = {
       role: 'user',
       created_at: new Date().toISOString(),
     };
-    const token = 'tok_' + Math.random().toString(36).substring(2, 10) + Date.now();
-    setAuthUser(user, token);
-    return { access_token: token, user };
+    setAuthUser(user);
+    return { user };
   },
 
   async resendOtp(email) {
@@ -810,6 +801,40 @@ export const auth = {
     return { success: true };
   },
 
+  async linkProvider(provider = 'google', returnTo = '/settings') {
+    const supported = new Set(['google', 'apple', 'azure']);
+    if (!supported.has(provider)) throw new Error('This sign-in provider is not supported.');
+
+    const supabase = getSupabase();
+    if (!supabase) {
+      throw new Error('Account linking requires a configured Supabase project.');
+    }
+
+    const { data: currentUserData, error: currentUserError } = await supabase.auth.getUser();
+    if (currentUserError || !currentUserData?.user) {
+      throw new Error('Please sign in again before linking a provider.');
+    }
+
+    const safeReturnTo = typeof returnTo === 'string'
+      && returnTo.startsWith('/')
+      && !returnTo.startsWith('//')
+      && !returnTo.includes('\\\\')
+      ? returnTo
+      : '/settings';
+    const redirectUrl = typeof window !== 'undefined'
+      ? `${window.location.origin}${safeReturnTo}`
+      : undefined;
+    const { data, error } = await supabase.auth.linkIdentity({
+      provider,
+      options: {
+        redirectTo: redirectUrl,
+        ...(provider === 'azure' ? { scopes: 'email' } : {}),
+      },
+    });
+    if (error) throw new Error(error.message || 'Unable to link this provider.');
+    return { success: true, provider, url: data?.url };
+  },
+
   async loginWithProvider(provider = 'google', returnTo = '/') {
     const providerConfig = {
       google: { label: 'Google', username: 'google_user' },
@@ -854,16 +879,13 @@ export const auth = {
       },
       created_at: new Date().toISOString(),
     };
-    const token = `tok_${provider}_` + Date.now();
-    setAuthUser(user, token);
+    setAuthUser(user);
     if (typeof window !== 'undefined') window.location.assign(safeReturnTo);
-    return { access_token: token, user, provider };
+    return { user, provider };
   },
 
-  setToken(token) {
-    if (typeof window !== 'undefined' && token) {
-      localStorage.setItem(AUTH_TOKEN_KEY, token);
-    }
+  setToken() {
+    // Token persistence belongs to the provider/session layer, never custom browser storage.
   },
 
   async logout(redirectUrl) {

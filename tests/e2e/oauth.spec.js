@@ -63,6 +63,23 @@ test.describe('OAuth entry points', () => {
   }
 });
 
+test.describe('Authentication and authorization boundaries', () => {
+  test('direct unauthenticated translation API calls are rejected without credential leakage', async ({ request }) => {
+    const response = await request.post('/api/translate', {
+      data: { text: 'should not be processed', targetLang: 'en' },
+    });
+    expect(response.status()).toBe(401);
+    const body = await response.text();
+    expect(body).not.toMatch(/access_token|refresh_token|service_role|client_secret|password/i);
+  });
+
+  test('custom auth adapter does not persist an authentication token', async ({ page }) => {
+    await page.goto('/login');
+    const keys = await page.evaluate(() => Object.keys(localStorage));
+    expect(keys).not.toContain('whisper_b44_auth_token');
+  });
+});
+
 test.describe('OAuth callback error handling', () => {
   test('renders a cancellation message from a provider callback', async ({ page }) => {
     await page.goto('/login#error=access_denied&error_description=The%20user%20denied%20access');
