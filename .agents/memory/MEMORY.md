@@ -1,1 +1,0 @@
-- [Rewarded ads](rewarded-ads.md) — Google Ad Placement API uses `adBreak` callbacks; regular AdSense slots are not the completion signal.

@@ -1,0 +1,11 @@
+{
+  "name": "Whisper Messenger",
+  "description": "All-in-one sketchbook messenger featuring instant multi-language SLM translation (28 languages), auto-translation for every message, status stories, channels, polls, and vanish mode.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
