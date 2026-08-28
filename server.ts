@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import { apiRateLimit, redactError, requireSupabaseUser, securityHeaders } from './server/security.js';
+import { rejectClientAuthorizationFields, requirePermission } from './server/authorization.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -73,8 +74,8 @@ async function startServer() {
   app.disable('x-powered-by');
   app.use(securityHeaders);
   app.use('/api', apiRateLimit);
-  app.use(['/api/translate', '/api/translate/batch'], requireSupabaseUser);
   app.use(express.json({ limit: '2mb' }));
+  app.use(['/api/translate', '/api/translate/batch'], requireSupabaseUser, requirePermission('translation:use'), rejectClientAuthorizationFields);
 
   // 1. SLM Translation Engine Status
   app.get('/api/slm/status', (req, res) => {

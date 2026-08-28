@@ -66,6 +66,7 @@ export async function requireSupabaseUser(req, res, next) {
   try {
     const supabase = createClient(url, anonKey, {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      global: { headers: { Authorization: `Bearer ${token}` } },
     });
     const { data, error } = await supabase.auth.getUser(token);
     if (error || !data?.user) {
@@ -73,6 +74,7 @@ export async function requireSupabaseUser(req, res, next) {
       return res.status(401).json({ error: 'Authentication required.' });
     }
     req.authUser = data.user;
+    req.auth = { user: data.user, supabase };
     return next();
   } catch {
     auditAuthEvent(req, 'authentication_verification_failed');
