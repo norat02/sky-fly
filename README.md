@@ -49,7 +49,7 @@ Whisper is an Instagram-style social media and real-time messaging application w
   - Storage bucket integration for `avatars`, `posts`, `stories`, and `chat_media`.
 - **Hand-Drawn Sketchbook UI / UX**:
   - Signature inky pen & paper aesthetic (`Kalam` & `Patrick Hand` typography, custom doodle borders, warm paper light mode, and dark inky mode).
-  - **Fast Live Translation**:
+- **Fast Live Translation**:
   - Per-user inline translation across 38 supported languages, with local cache, SLM, OpenRouter, Gemini, DeepSeek, and OpenAI fallbacks.
 
 ---
@@ -83,15 +83,17 @@ Whisper is an Instagram-style social media and real-time messaging application w
 
 ### 3. Configure Supabase Authentication
 1. Go to **Authentication** -> **URL Configuration**.
-2. Set **Site URL** to your production URL (e.g., `https://your-whisper-app.vercel.app` or `http://localhost:3000` for local dev).
-3. Under **Redirect URLs**, add:
+2. Set **Site URL** to your production URL (for example, `https://your-whisper-app.vercel.app`) and add the local URL during development.
+3. Under **Redirect URLs**, add the exact app origins/paths you use, such as:
    - `http://localhost:3000/**`
    - `https://your-whisper-app.vercel.app/**`
-4. Configure the social providers you want under **Authentication** -> **Providers**:
-   - **Google**: enable Google and add the OAuth Client ID and Client Secret from Google Cloud Console.
-   - **Apple**: enable Apple and add the Services ID, Team ID, Key ID, and private key from Apple Developer.
-   - **Azure (Microsoft)**: enable Azure and add the Microsoft Entra Client ID and Client Secret. Whisper uses Supabase provider key `azure` for the Microsoft button.
-5. In each provider console, register Supabase's callback URL shown in the provider settings. Keep Whisper's app redirect URL in Supabase **URL Configuration** so the session returns to the app after authentication.
+4. Configure the social providers under **Authentication** -> **Providers**:
+   - **Google**: create a Web OAuth client in [Google Auth Platform](https://console.cloud.google.com/auth/clients), then paste its Client ID and Client Secret into Supabase. Supabase's Google setup is documented [here](https://supabase.com/docs/guides/auth/social-login/auth-google).
+   - **Apple**: create a Sign in with Apple Services ID, configure the Return URL, Team ID, Key ID and `.p8` private key, then paste the values into Supabase. Review the [Apple provider guide](https://supabase.com/docs/guides/auth/social-login/auth-apple); Apple web client secrets must be rotated periodically.
+   - **Azure (Microsoft)**: register a Web app in Microsoft Entra ID with the Supabase callback URL, create a client secret, and configure the Client ID and secret in Supabase Azure. Whisper uses provider key `azure`; see the [Azure provider guide](https://supabase.com/docs/guides/auth/social-login/auth-azure).
+5. In each provider console, register the Supabase callback URL shown by the Supabase provider page. Keep Whisper's app redirect URL in Supabase **URL Configuration** so the session returns to the app after authentication.
+
+> OAuth client secrets belong in Supabase's provider settings, not in `.env.local` or the browser bundle. The Whisper frontend only needs the Supabase URL and anon key.
 
 ### 4. Copy API Keys
 1. Go to **Project Settings** -> **API**.
@@ -118,7 +120,16 @@ Whisper is an Instagram-style social media and real-time messaging application w
    ```bash
    cp .env.example .env.local
    ```
-   At minimum, set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. For server-side translation, set `GEMINI_API_KEY`. The optional `VITE_*` translation keys are browser-visible and should not contain high-privilege secrets. See `.env.example` for the complete list and provider-specific notes.
+   Required for the real Supabase-backed app:
+   ```env
+   VITE_SUPABASE_URL=https://your-project-id.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-supabase-anon-public-key
+   ```
+   Recommended for server-side translation:
+   ```env
+   GEMINI_API_KEY=your-server-side-gemini-key
+   ```
+   The optional `VITE_*` translation keys are browser-visible after bundling. Never place a Supabase service-role key, OAuth client secret, or other high-privilege secret in a `VITE_*` variable. See [`.env.example`](.env.example) for the complete reference.
 
 4. **Start the development server**:
    ```bash
@@ -144,7 +155,7 @@ The repository includes a ready-to-use `vercel.json` configured for Vite SPA rou
    - Select your GitHub repository and click **Import**.
 
 3. **Configure Environment Variables in Vercel**:
-   Add the following variables in the Vercel project deployment settings:
+   Add the following variables in the Vercel project deployment settings. OAuth client IDs/secrets are configured in Supabase **Authentication -> Providers**, not as Vercel frontend variables:
    - `VITE_SUPABASE_URL`: Your Supabase Project URL (`https://xyz.supabase.co`)
    - `VITE_SUPABASE_ANON_KEY`: Your Supabase Anon Public Key
    - `GEMINI_API_KEY`: *(Recommended for server-side translation)* Gemini API key
@@ -195,3 +206,5 @@ The repository includes a ready-to-use `vercel.json` configured for Vite SPA rou
 | `pnpm preview` | Serves the production frontend locally for verification |
 | `pnpm lint` | Runs ESLint on project files |
 | `pnpm typecheck` | Runs the configured TypeScript check |
+
+For the complete environment variable list, required/optional status, OAuth notes, and secret-handling rules, see [`.env.example`](.env.example).
