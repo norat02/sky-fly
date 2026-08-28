@@ -88,10 +88,16 @@ Whisper is an Instagram-style social media and real-time messaging application w
    - `http://localhost:3000/**`
    - `https://your-whisper-app.vercel.app/**`
 4. Configure the social providers under **Authentication** -> **Providers**:
-   - **Google**: create a Web OAuth client in [Google Auth Platform](https://console.cloud.google.com/auth/clients), then paste its Client ID and Client Secret into Supabase. Supabase's Google setup is documented [here](https://supabase.com/docs/guides/auth/social-login/auth-google).
-   - **Apple**: create a Sign in with Apple Services ID, configure the Return URL, Team ID, Key ID and `.p8` private key, then paste the values into Supabase. Review the [Apple provider guide](https://supabase.com/docs/guides/auth/social-login/auth-apple); Apple web client secrets must be rotated periodically.
-   - **Azure (Microsoft)**: register a Web app in Microsoft Entra ID with the Supabase callback URL, create a client secret, and configure the Client ID and secret in Supabase Azure. Whisper uses provider key `azure`; see the [Azure provider guide](https://supabase.com/docs/guides/auth/social-login/auth-azure).
-5. In each provider console, register the Supabase callback URL shown by the Supabase provider page. Keep Whisper's app redirect URL in Supabase **URL Configuration** so the session returns to the app after authentication.
+   - **Google**: create a Web OAuth client in [Google Auth Platform](https://console.cloud.google.com/auth/clients), add `https://staging.your-domain.com` as an Authorized JavaScript origin, add `https://<project-ref>.supabase.co/auth/v1/callback` as an Authorized redirect URI, then paste its Client ID and Client Secret into Supabase. Supabase's Google setup is documented [here](https://supabase.com/docs/guides/auth/social-login/auth-google).
+   - **Apple**: create a Sign in with Apple Services ID, add `staging.your-domain.com` as the domain and `https://<project-ref>.supabase.co/auth/v1/callback` as the Return URL, then add the Team ID, Key ID and `.p8` private key in Supabase. Review the [Apple provider guide](https://supabase.com/docs/guides/auth/social-login/auth-apple); Apple web client secrets must be rotated periodically.
+   - **Azure (Microsoft)**: register a Web app in Microsoft Entra ID with `https://<project-ref>.supabase.co/auth/v1/callback` as the redirect URI, create a client secret, and configure the Client ID and secret in Supabase Azure. Whisper uses provider key `azure`; see the [Azure provider guide](https://supabase.com/docs/guides/auth/social-login/auth-azure).
+5. In each provider console, register the Supabase callback URL shown by the Supabase provider page. For the hosted Supabase project it normally has this shape:
+
+   ```text
+   https://<project-ref>.supabase.co/auth/v1/callback
+   ```
+
+   Keep Whisper's app redirect URL in Supabase **URL Configuration** so the session returns to the app after authentication. In the client code, the provider keys are `google`, `apple`, and `azure` for Microsoft.
 
 > OAuth client secrets belong in Supabase's provider settings, not in `.env.local` or the browser bundle. The Whisper frontend only needs the Supabase URL and anon key.
 
