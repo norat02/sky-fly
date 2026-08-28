@@ -7,6 +7,7 @@ import { apiRateLimit, requireSupabaseUser, securityHeaders } from './server/sec
 import { rejectClientAuthorizationFields, requirePermission } from './server/authorization.js';
 import { createModerationService } from './server/moderation.js';
 import { LANGUAGE_NAMES, registerTranslationRoutes } from './server/translation-routes.js';
+import { registerAdminModerationRoutes } from './server/admin-moderation.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -90,6 +91,22 @@ function translationProvider() {
   };
 }
 
+async function recordModerationEvent({ req, content, moderation, targetLang }: any) {
+  const supabase = req.auth?.supabase;
+  if (!supabase) return;
+  const { error } = await supabase.from('moderation_events').insert({
+    content,
+    decision: moderation.decision,
+    risk_level: moderation.riskLevel,
+    categories: moderation.categories,
+    confidence: moderation.confidence,
+    reason_code: moderation.reasonCode,
+    status: 'pending',
+    target_lang: targetLang,
+  });
+  if (error) console.warn('[moderation-audit]', JSON.stringify({ event: 'moderation_event_persist_failed', code: error.code || 'unknown' }));
+}
+
 async function startServer() {
   const app = express();
   app.disable('x-powered-by');
@@ -108,10 +125,15 @@ async function startServer() {
     });
   });
 
+  const authenticatedTranslationMiddleware = [requireSupabaseUser, requirePermission('translation:use'), rejectClientAuthorizationFields];
   registerTranslationRoutes(app, {
-    authMiddleware: [requireSupabaseUser, requirePermission('translation:use'), rejectClientAuthorizationFields],
+    authMiddleware: authenticatedTranslationMiddleware,
     moderationService,
     getAiClient: translationProvider,
+    recordModerationEvent,
+  });
+  registerAdminModerationRoutes(app, {
+    authMiddleware: requireSupabaseUser,
   });
 
   if (process.env.NODE_ENV !== 'production') {

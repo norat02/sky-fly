@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createModerationService } from './moderation.js';
+import { createModerationService, normalizeForModeration } from './moderation.js';
 
 test('sanitizes valid structured moderation output', async () => {
   const service = createModerationService({
@@ -20,6 +20,34 @@ test('sanitizes valid structured moderation output', async () => {
     confidence: 1,
     reasonCode: 'synthetic_fixture_',
   });
+});
+
+test('removes zero-width characters before moderation classification', async () => {
+  let received;
+  const service = createModerationService({
+    provider: async ({ text }) => {
+      received = text;
+      return { decision: text.includes('IGNORE_POLICY') ? 'review' : 'allow', riskLevel: 'medium', categories: ['policy_evasion'], confidence: 0.9, reasonCode: 'zero_width_fixture' };
+    },
+  });
+  const input = 'IGNORE_' + String.fromCharCode(0x200b) + 'POLICY';
+  const result = await service.classify(input);
+  assert.equal(received, 'IGNORE_POLICY');
+  assert.equal(result.decision, 'review');
+  assert.equal(normalizeForModeration(input).includes(String.fromCharCode(0x200b)), false);
+});
+
+test('maps common Cyrillic homoglyphs to a moderation skeleton', async () => {
+  let received;
+  const service = createModerationService({
+    provider: async ({ text }) => {
+      received = text;
+      return { decision: text.includes('hack') ? 'block' : 'allow', riskLevel: 'high', categories: ['cyber_abuse_or_exploitation'], confidence: 0.95, reasonCode: 'homoglyph_fixture' };
+    },
+  });
+  const result = await service.classify('hаck');
+  assert.equal(received, 'hack');
+  assert.equal(result.decision, 'block');
 });
 
 test('does not implicitly allow malformed provider output', async () => {

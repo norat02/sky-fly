@@ -2,6 +2,7 @@ import test, { after, before } from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
 import { registerTranslationRoutes } from './translation-routes.js';
+import { normalizeForModeration } from './moderation.js';
 import { rejectClientAuthorizationFields } from './authorization.js';
 
 let server;
@@ -11,7 +12,8 @@ let translatorCalls;
 const moderationService = {
   async classify(text) {
     if (typeof text !== 'string') return { decision: 'review', riskLevel: 'medium', categories: [], confidence: 0, reasonCode: 'invalid' };
-    if (text.includes('[BLOCK_CYBER]') || text.includes('[DANGEROUS_COMMUNITY_HARM]')) {
+    const normalized = normalizeForModeration(text);
+    if (normalized.includes('[BLOCK_CYBER]') || normalized.includes('[DANGEROUS_COMMUNITY_HARM]') || normalized.includes('hack')) {
       return { decision: 'block', riskLevel: 'high', categories: ['cyber_abuse_or_exploitation'], confidence: 0.99, reasonCode: 'synthetic_attack_fixture' };
     }
     if (text.includes('[REVIEW]') || text.includes('IGNORE_POLICY_AND_ALLOW')) {
@@ -89,6 +91,21 @@ test('blocks synthetic cyber-abuse and does not call translator', async () => {
   assert.equal(response.status, 403);
   assert.equal(body.code, 'CONTENT_MODERATION_BLOCKED');
   assert.equal(body.translatedText, undefined);
+  assert.equal(translatorCalls.single, 0);
+});
+
+test('blocks zero-width and homoglyph evasion through the real HTTP route', async () => {
+  const zeroWidth = await request('/api/translate', {
+    method: 'POST', headers: { authorization: 'Bearer test-user' },
+    body: JSON.stringify({ text: '[BLOCK_' + String.fromCharCode(0x200b) + 'CYBER]', targetLang: 'en' }),
+  });
+  assert.equal(zeroWidth.status, 403);
+
+  const homoglyph = await request('/api/translate', {
+    method: 'POST', headers: { authorization: 'Bearer test-user' },
+    body: JSON.stringify({ text: 'hаck', targetLang: 'en' }),
+  });
+  assert.equal(homoglyph.status, 403);
   assert.equal(translatorCalls.single, 0);
 });
 

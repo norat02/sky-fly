@@ -14,6 +14,7 @@ import Chat from './pages/Chat';
 import Profile from './pages/Profile';
 import ProfileEdit from './pages/ProfileEdit';
 import Settings from './pages/Settings';
+import AdminModeration from './pages/AdminModeration';
 import Home from './pages/Home';
 
 import TabLayout from '@/components/TabLayout';
@@ -69,6 +70,7 @@ const AuthenticatedApp = () => {
 
         <Route path="/profile/edit" element={<ProfileEdit />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/admin/moderation" element={<AdminModeration />} />
         <Route path="/chat/:roomId" element={<Chat />} />
         <Route path="/home" element={<Home />} />
       </Route>

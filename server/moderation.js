@@ -1,5 +1,10 @@
 const MAX_MODERATION_CHARS = 8000;
 const DECISIONS = new Set(['allow', 'review', 'block']);
+const ZERO_WIDTH_RE = /[\u200B-\u200D\u2060\uFEFF]/g;
+const CONFUSABLES = new Map([
+  ['а', 'a'], ['е', 'e'], ['о', 'o'], ['р', 'p'], ['с', 'c'], ['х', 'x'], ['у', 'y'], ['і', 'i'], ['ӏ', 'l'],
+  ['Α', 'A'], ['Β', 'B'], ['Ε', 'E'], ['Ι', 'I'], ['Ο', 'O'], ['Ρ', 'P'], ['Τ', 'T'], ['Χ', 'X'], ['ο', 'o'], ['а', 'a'],
+]);
 const RISK_LEVELS = new Set(['none', 'low', 'medium', 'high', 'critical']);
 
 export const MODERATION_CATEGORIES = Object.freeze([
@@ -20,9 +25,13 @@ const FALLBACK_RESULT = Object.freeze({
   reasonCode: 'moderation_unavailable',
 });
 
+export function normalizeForModeration(value) {
+  return value.normalize('NFKC').replace(ZERO_WIDTH_RE, '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').split('').map((char) => CONFUSABLES.get(char) || char).join('');
+}
+
 function boundedText(value) {
   if (typeof value !== 'string') return null;
-  const normalized = value.normalize('NFKC').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+  const normalized = normalizeForModeration(value);
   if (!normalized.trim() || normalized.length > MAX_MODERATION_CHARS) return null;
   return normalized;
 }

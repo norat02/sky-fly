@@ -13,7 +13,7 @@ function itemText(item) {
   return typeof item === 'string' ? item : item && typeof item.text === 'string' ? item.text : null;
 }
 
-export function registerTranslationRoutes(app, { authMiddleware, moderationService, getAiClient }) {
+export function registerTranslationRoutes(app, { authMiddleware, moderationService, getAiClient, recordModerationEvent }) {
   const router = express.Router();
   router.use(authMiddleware);
 
@@ -28,6 +28,7 @@ export function registerTranslationRoutes(app, { authMiddleware, moderationServi
 
       const moderation = await moderationService.classify(trimmed, { targetLang });
       if (!isModerationAllowed(moderation)) {
+        await recordModerationEvent?.({ req, content: trimmed, moderation, targetLang });
         return reject(res, isModerationBlocked(moderation) ? 403 : 202,
           isModerationBlocked(moderation) ? 'Content blocked by community safety policy.' : 'Content is pending safety review.',
           isModerationBlocked(moderation) ? 'CONTENT_MODERATION_BLOCKED' : 'CONTENT_MODERATION_REVIEW');
@@ -53,6 +54,7 @@ export function registerTranslationRoutes(app, { authMiddleware, moderationServi
       const moderationResults = await Promise.all(texts.map((text) => moderationService.classify(text, { targetLang })));
       const unsafeIndexes = moderationResults.map((result, index) => isModerationAllowed(result) ? -1 : index).filter((index) => index >= 0);
       if (unsafeIndexes.length) {
+        await Promise.all(unsafeIndexes.map((index) => recordModerationEvent?.({ req, content: texts[index], moderation: moderationResults[index], targetLang })));
         const blocked = unsafeIndexes.some((index) => isModerationBlocked(moderationResults[index]));
         return res.status(blocked ? 403 : 202).json({
           error: blocked ? 'Content blocked by community safety policy.' : 'Content is pending safety review.',
