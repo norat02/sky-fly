@@ -1,6 +1,8 @@
 const MAX_MODERATION_CHARS = 8000;
 const DECISIONS = new Set(['allow', 'review', 'block']);
+// Formatting controls are removed only from the moderation copy. Arabic letters remain intact.
 const ZERO_WIDTH_RE = /[\u200B-\u200D\u2060\uFEFF]/g;
+const BIDI_CONTROL_RE = /[\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
 const CONFUSABLES = new Map([
   ['а', 'a'], ['е', 'e'], ['о', 'o'], ['р', 'p'], ['с', 'c'], ['х', 'x'], ['у', 'y'], ['і', 'i'], ['ӏ', 'l'],
   ['Α', 'A'], ['Β', 'B'], ['Ε', 'E'], ['Ι', 'I'], ['Ο', 'O'], ['Ρ', 'P'], ['Τ', 'T'], ['Χ', 'X'], ['ο', 'o'], ['а', 'a'],
@@ -26,7 +28,14 @@ const FALLBACK_RESULT = Object.freeze({
 });
 
 export function normalizeForModeration(value) {
-  return value.normalize('NFKC').replace(ZERO_WIDTH_RE, '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').split('').map((char) => CONFUSABLES.get(char) || char).join('');
+  return value
+    .normalize('NFKC')
+    .replace(ZERO_WIDTH_RE, '')
+    .replace(BIDI_CONTROL_RE, '')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+    .split('')
+    .map((char) => CONFUSABLES.get(char) || char)
+    .join('');
 }
 
 function boundedText(value) {
