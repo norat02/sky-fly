@@ -11,7 +11,8 @@
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",
     "preview": "vite preview",
-    "test:security": "node --test server/authorization.test.js",
+    "test:security": "node --test server/authorization.test.js server/moderation.test.js",
+    "test:integration": "node --test server/translation-routes.integration.test.js",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report"

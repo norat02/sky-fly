@@ -69,10 +69,13 @@ export function requireOwnership(resolveOwnerId) {
 
 export function rejectClientAuthorizationFields(req, res, next) {
   const body = req.body && typeof req.body === 'object' ? req.body : {};
-  const forbidden = ['role', 'roles', 'permission', 'permissions', 'ownerId', 'owner_id', 'isAdmin', 'is_admin', 'userId', 'user_id'];
-  if (forbidden.some((field) => Object.prototype.hasOwnProperty.call(body, field))) {
-    return deny(res, 403, 'Authorization fields are server-controlled.');
-  }
+  const forbidden = new Set(['role', 'roles', 'permission', 'permissions', 'ownerId', 'owner_id', 'isAdmin', 'is_admin', 'userId', 'user_id']);
+  const containsForbiddenField = (value, seen = new Set()) => {
+    if (!value || typeof value !== 'object' || seen.has(value)) return false;
+    seen.add(value);
+    return Object.entries(value).some(([key, child]) => forbidden.has(key) || containsForbiddenField(child, seen));
+  };
+  if (containsForbiddenField(body)) return deny(res, 403, 'Authorization fields are server-controlled.');
   return next();
 }
 
