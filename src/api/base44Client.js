@@ -1,6 +1,7 @@
 // Comprehensive Supabase-backed client for Whisper app entities, authentication, realtime, and storage.
 
 import { getSupabase, uploadToSupabaseStorage } from '@/lib/supabase';
+import { detectPreferredLanguage } from '@/lib/languages';
 
 const DB_PREFIX = 'whisper_b44_entity_';
 const AUTH_USER_KEY = 'whisper_b44_auth_user';
@@ -654,7 +655,7 @@ export const auth = {
               id: data.user.id,
               username: rawUsername,
               display_name: formattedDisplayName,
-              language: 'en',
+              language: detectPreferredLanguage(),
               auto_translate: true,
               bio: 'Sketchbook explorer and whisperer',
               status: 'online',
@@ -690,7 +691,7 @@ export const auth = {
         id,
         username: rawUsername,
         display_name: formattedDisplayName,
-        language: 'en',
+        language: detectPreferredLanguage(),
         auto_translate: true,
         original_language: 'auto',
         bio: 'Sketchbook explorer and whisperer',

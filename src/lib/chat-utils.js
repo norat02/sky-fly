@@ -1,7 +1,21 @@
 import { db } from '@/api/base44Client';
+import { detectPreferredLanguage } from '@/lib/languages';
 
-export const DEFAULT_LANGUAGE = 'en';
+export const DEFAULT_LANGUAGE = detectPreferredLanguage();
 export const DEFAULT_AUTO_TRANSLATE = true;
+const LANGUAGE_MANUAL_KEY = 'whisper_language_manual';
+
+function hasManualLanguagePreference() {
+  return typeof window !== 'undefined' && window.localStorage.getItem(LANGUAGE_MANUAL_KEY) === 'true';
+}
+
+function markManualLanguagePreference() {
+  try {
+    if (typeof window !== 'undefined') window.localStorage.setItem(LANGUAGE_MANUAL_KEY, 'true');
+  } catch {
+    // ignore storage failures
+  }
+}
 
 function normalizeLanguageProfile(profile) {
   if (!profile) return profile;
@@ -235,6 +249,12 @@ export async function ensureProfile() {
           auto_translate: p.auto_translate !== false,
           user_id: user.id,
         };
+        const detectedLanguage = detectPreferredLanguage();
+        const shouldAdoptDetected = !hasManualLanguagePreference() && (!p.language || p.language === 'en') && detectedLanguage !== 'en';
+        if (shouldAdoptDetected) {
+          profile.language = detectedLanguage;
+          await db.entities.Profile.update(profile.id, { language: detectedLanguage, auto_translate: true }).catch(() => {});
+        }
         setLocalProfile(profile);
         return profile;
       }
@@ -300,6 +320,7 @@ export async function ensureProfile() {
 
 export async function updateProfile(updates) {
   const profile = getLocalProfile();
+  if (updates?.language) markManualLanguagePreference();
   if (!profile) return null;
   const targetId = profile.id || profile.profile_id;
   try {

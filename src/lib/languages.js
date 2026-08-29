@@ -39,6 +39,32 @@ export const LANGUAGES = [
   { code: 'fi', label: 'Finnish', native: 'Suomi', flag: '🇫🇮' },
 ];
 
+const LANGUAGE_CODES = new Set(LANGUAGES.map((language) => language.code));
+
+const LANGUAGE_ALIASES = {
+  iw: 'he', in: 'id', jp: 'ja', kr: 'ko', ua: 'uk', zhcn: 'zh', zhhans: 'zh', zhtw: 'zh-TW', zhhant: 'zh-TW',
+};
+
+function normalizeLocaleCode(locale) {
+  if (typeof locale !== 'string') return null;
+  const normalized = locale.trim().replace('_', '-').toLowerCase();
+  if (!normalized) return null;
+  const exact = normalized === 'zh-tw' ? 'zh-TW' : normalized.split('-')[0];
+  if (LANGUAGE_CODES.has(exact)) return exact;
+  return LANGUAGE_ALIASES[normalized.replace(/-/g, '')] || LANGUAGE_ALIASES[exact] || null;
+}
+
+export function detectPreferredLanguage(locales) {
+  const candidates = Array.isArray(locales) && locales.length
+    ? locales
+    : (typeof navigator !== 'undefined' ? [navigator.language, ...(navigator.languages || [])] : []);
+  for (const locale of candidates) {
+    const code = normalizeLocaleCode(locale);
+    if (code) return code;
+  }
+  return 'en';
+}
+
 export function languageLabel(code) {
   if (!code) return 'English';
   const found = LANGUAGES.find((l) => l.code === code);

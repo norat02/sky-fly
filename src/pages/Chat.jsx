@@ -26,7 +26,7 @@ import PinnedMessages from '@/components/chat/PinnedMessages';
 import LanguageSelectModal from '@/components/LanguageSelectModal';
 import ChatWallpaperModal, { CHAT_WALLPAPERS } from '@/components/chat/ChatWallpaperModal';
 import BackgroundOrbs from '@/components/BackgroundOrbs';
-import { ensureProfile, getLocalProfile, getRoomSettings, saveRoom } from '@/lib/chat-utils';
+import { DEFAULT_LANGUAGE, ensureProfile, getLocalProfile, getRoomSettings, saveRoom } from '@/lib/chat-utils';
 import { prefetchTranslation, translateBatch } from '@/lib/openrouter';
 import { getLanguageInfo } from '@/lib/languages';
 import { db } from '@/api/base44Client';
@@ -595,7 +595,7 @@ export default function Chat() {
   const me = participantRef.current;
   const otherParticipant = participants.find((p) => p.participant_id !== me?.id || p.user_id !== me?.id);
   const myProfile = profileLoaded || getLocalProfile();
-  const viewerLang = myProfile?.language || 'en';
+  const viewerLang = myProfile?.language || DEFAULT_LANGUAGE;
   const autoTranslate = myProfile?.auto_translate !== false; // Every user sees received messages in their selected language by default
   const myParticipant = participants.find((p) => p.participant_id === me?.id || p.user_id === me?.id);
   const isOwner = myParticipant?.is_owner || false;
