@@ -27,11 +27,12 @@ export function registerAdminModerationRoutes(app, { authMiddleware }) {
     if (!DECISIONS.has(decision) || (note !== undefined && typeof note !== 'string')) {
       return res.status(400).json({ error: 'Invalid moderation decision.' });
     }
+    const persistedDecision = decision === 'approve' ? 'allow' : 'block';
     const { data, error } = await req.auth.supabase
       .from('moderation_events')
       .update({
         status: 'resolved',
-        decision,
+        decision: persistedDecision,
         reviewer_note: note?.slice(0, 1000) || null,
         reviewed_by: req.auth.user.id,
         reviewed_at: new Date().toISOString(),

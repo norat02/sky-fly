@@ -66,8 +66,15 @@ export default function AdminModeration() {
       <div className="mx-auto max-w-7xl">
         <header className="mb-8 flex flex-col gap-5 border-b border-slate-200/80 pb-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
+            <div className="mb-4 flex items-center gap-3">
+              <img src="/brand/whisper-logo.png" alt="Whisper" className="h-12 w-12 rounded-2xl object-cover shadow-sm" />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Whisper admin</p>
+                <p className="text-sm text-slate-500">Safety desk</p>
+              </div>
+            </div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-              <ShieldCheck className="h-4 w-4" /> Admin safety desk
+              <ShieldCheck className="h-4 w-4" /> Community safety
             </div>
             <h1 className="font-serif text-3xl font-semibold tracking-tight sm:text-4xl">Moderation queue</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Xem xét các nội dung được AI đánh dấu trước khi chúng được dịch hoặc phân phối tiếp.</p>
