@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import BrandLogo from '@/components/BrandLogo';
 import { AlertTriangle, CheckCircle2, Clock3, ShieldCheck, XCircle } from 'lucide-react';
 
 const STATUS_COPY = {
@@ -67,7 +68,7 @@ export default function AdminModeration() {
         <header className="mb-8 flex flex-col gap-5 border-b border-slate-200/80 pb-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="mb-4 flex items-center gap-3">
-              <img src="/brand/whisper-logo.png" alt="Whisper" className="h-12 w-12 rounded-2xl object-cover shadow-sm" />
+              <BrandLogo className="h-12 max-w-[11rem]" />
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Whisper admin</p>
                 <p className="text-sm text-slate-500">Safety desk</p>

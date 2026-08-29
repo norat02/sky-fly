@@ -1,6 +1,7 @@
 import BackgroundOrbs from '@/components/BackgroundOrbs';
 import { ArrowUpRight, Sparkles, Wand2 } from 'lucide-react';
 import LegalLinks from '@/components/LegalLinks';
+import BrandLogo from '@/components/BrandLogo';
 
 export default function AuthLayout({ icon: Icon, title, subtitle = '', footer = null, children = null }) {
   return (
@@ -11,10 +12,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle = '', footer = 
       <main className="relative z-10 mx-auto grid min-h-[100dvh] w-full max-w-6xl items-center gap-10 px-5 py-8 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20 lg:px-12 lg:py-12">
         <section className="hidden lg:block" aria-label="Whisper introduction">
           <div className="mb-10 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
-              <Sparkles size={20} />
-            </div>
-            <span className="font-heading text-lg font-bold tracking-tight">whisper<span className="text-accent">.</span></span>
+            <BrandLogo compact />
           </div>
 
           <div className="max-w-xl">
@@ -53,13 +51,8 @@ export default function AuthLayout({ icon: Icon, title, subtitle = '', footer = 
 
         <section className="mx-auto w-full max-w-md lg:max-w-[26rem]">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
-              <Sparkles size={19} />
-            </div>
-            <div>
-              <p className="font-heading text-lg font-bold tracking-tight">whisper<span className="text-accent">.</span></p>
-              <p className="text-xs text-muted-foreground">A quieter way to connect</p>
-            </div>
+            <BrandLogo compact className="max-w-[10rem]" />
+            <p className="text-xs text-muted-foreground">A quieter way to connect</p>
           </div>
 
           <div className="mb-7 text-center lg:text-left">
